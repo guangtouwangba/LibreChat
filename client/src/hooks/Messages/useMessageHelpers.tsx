@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { Constants, isAssistantsEndpoint } from 'librechat-data-provider';
+import throttle from 'lodash/throttle';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { Constants, isAssistantsEndpoint, isAgentsEndpoint } from 'librechat-data-provider';
 import type { TMessageProps } from '~/common';
-import { useChatContext, useAssistantsMapContext } from '~/Providers';
+import { useChatContext, useAssistantsMapContext, useAgentsMapContext } from '~/Providers';
 import useCopyToClipboard from './useCopyToClipboard';
 import { getTextKey, logger } from '~/utils';
 
@@ -21,10 +22,11 @@ export default function useMessageHelpers(props: TMessageProps) {
     setLatestMessage,
   } = useChatContext();
   const assistantMap = useAssistantsMapContext();
+  const agentMap = useAgentsMapContext();
 
   const { text, content, children, messageId = null, isCreatedByUser } = message ?? {};
   const edit = messageId === currentEditId;
-  const isLast = !children?.length;
+  const isLast = children?.length === 0 || children?.length === undefined;
 
   useEffect(() => {
     const convoId = conversation?.conversationId;
@@ -44,7 +46,7 @@ export default function useMessageHelpers(props: TMessageProps) {
     const logInfo = {
       textKey,
       'latestText.current': latestText.current,
-      messageId: message?.messageId,
+      messageId: message.messageId,
       convoId,
     };
     if (
@@ -60,24 +62,51 @@ export default function useMessageHelpers(props: TMessageProps) {
   }, [isLast, message, setLatestMessage, conversation?.conversationId]);
 
   const enterEdit = useCallback(
-    (cancel?: boolean) => setCurrentEditId && setCurrentEditId(cancel ? -1 : messageId),
+    (cancel?: boolean) => setCurrentEditId && setCurrentEditId(cancel === true ? -1 : messageId),
     [messageId, setCurrentEditId],
   );
 
-  const handleScroll = useCallback(() => {
-    if (isSubmitting) {
-      setAbortScroll(true);
-    } else {
-      setAbortScroll(false);
-    }
-  }, [isSubmitting, setAbortScroll]);
+  const handleScroll = useCallback(
+    (event: unknown) => {
+      throttle(() => {
+        logger.log(
+          'message_scrolling',
+          `useMessageHelpers: setting abort scroll to ${isSubmitting}, handleScroll event`,
+          event,
+        );
+        if (isSubmitting) {
+          setAbortScroll(true);
+        } else {
+          setAbortScroll(false);
+        }
+      }, 500)();
+    },
+    [isSubmitting, setAbortScroll],
+  );
 
-  const assistant =
-    isAssistantsEndpoint(conversation?.endpoint) &&
-    assistantMap?.[conversation?.endpoint ?? '']?.[message?.model ?? ''];
+  const assistant = useMemo(() => {
+    if (!isAssistantsEndpoint(conversation?.endpoint)) {
+      return undefined;
+    }
+
+    const endpointKey = conversation?.endpoint ?? '';
+    const modelKey = message?.model ?? '';
+
+    return assistantMap?.[endpointKey] ? assistantMap[endpointKey][modelKey] : undefined;
+  }, [conversation?.endpoint, message?.model, assistantMap]);
+
+  const agent = useMemo(() => {
+    if (!isAgentsEndpoint(conversation?.endpoint)) {
+      return undefined;
+    }
+
+    const modelKey = message?.model ?? '';
+
+    return agentMap ? agentMap[modelKey] : undefined;
+  }, [agentMap, conversation?.endpoint, message?.model]);
 
   const regenerateMessage = () => {
-    if ((isSubmitting && isCreatedByUser) || !message) {
+    if ((isSubmitting && isCreatedByUser === true) || !message) {
       return;
     }
 
@@ -89,6 +118,7 @@ export default function useMessageHelpers(props: TMessageProps) {
   return {
     ask,
     edit,
+    agent,
     index,
     isLast,
     assistant,

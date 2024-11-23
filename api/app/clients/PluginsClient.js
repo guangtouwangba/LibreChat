@@ -1,14 +1,13 @@
 const OpenAIClient = require('./OpenAIClient');
-const { CallbackManager } = require('langchain/callbacks');
 const { CacheKeys, Time } = require('librechat-data-provider');
+const { CallbackManager } = require('@langchain/core/callbacks/manager');
 const { BufferMemory, ChatMessageHistory } = require('langchain/memory');
-const { initializeCustomAgent, initializeFunctionsAgent } = require('./agents');
 const { addImages, buildErrorInput, buildPromptPrefix } = require('./output_parsers');
+const { initializeCustomAgent, initializeFunctionsAgent } = require('./agents');
 const { processFileURL } = require('~/server/services/Files/process');
 const { EModelEndpoint } = require('librechat-data-provider');
 const { formatLangChainMessages } = require('./prompts');
 const checkBalance = require('~/models/checkBalance');
-const { SelfReflectionTool } = require('./tools');
 const { isEnabled } = require('~/server/utils');
 const { extractBaseURL } = require('~/utils');
 const { loadTools } = require('./tools/util');
@@ -42,6 +41,7 @@ class PluginsClient extends OpenAIClient {
 
   getSaveOptions() {
     return {
+      artifacts: this.options.artifacts,
       chatGptLabel: this.options.chatGptLabel,
       promptPrefix: this.options.promptPrefix,
       tools: this.options.tools,
@@ -121,9 +121,7 @@ class PluginsClient extends OpenAIClient {
       },
     });
 
-    if (this.tools.length > 0 && !this.functionsAgent) {
-      this.tools.push(new SelfReflectionTool({ message, isGpt3: false }));
-    } else if (this.tools.length === 0) {
+    if (this.tools.length === 0) {
       return;
     }
 
@@ -145,16 +143,22 @@ class PluginsClient extends OpenAIClient {
 
     // initialize agent
     const initializer = this.functionsAgent ? initializeFunctionsAgent : initializeCustomAgent;
+
+    let customInstructions = (this.options.promptPrefix ?? '').trim();
+    if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
+      customInstructions = `${customInstructions ?? ''}\n${this.options.artifactsPrompt}`.trim();
+    }
+
     this.executor = await initializer({
       model,
       signal,
       pastMessages,
       tools: this.tools,
+      customInstructions,
       verbose: this.options.debug,
       returnIntermediateSteps: true,
       customName: this.options.chatGptLabel,
       currentDateString: this.currentDateString,
-      customInstructions: this.options.promptPrefix,
       callbackManager: CallbackManager.fromHandlers({
         async handleAgentAction(action, runId) {
           handleAction(action, runId, onAgentAction);
@@ -451,7 +455,6 @@ class PluginsClient extends OpenAIClient {
 
     const instructionsPayload = {
       role: 'system',
-      name: 'instructions',
       content: promptPrefix,
     };
 

@@ -1,5 +1,6 @@
 import type { AssistantsEndpoint } from './schemas';
 
+export const health = () => '/health';
 export const user = () => '/api/user';
 
 export const balance = () => '/api/balance';
@@ -33,9 +34,9 @@ export const abortRequest = (endpoint: string) => `/api/ask/${endpoint}/abort`;
 export const conversationsRoot = '/api/convos';
 
 export const conversations = (pageNumber: string, isArchived?: boolean, tags?: string[]) =>
-  `${conversationsRoot}?pageNumber=${pageNumber}${isArchived ? '&isArchived=true' : ''}${tags
-    ?.map((tag) => `&tags=${tag}`)
-    .join('')}`;
+  `${conversationsRoot}?pageNumber=${pageNumber}${
+    isArchived === true ? '&isArchived=true' : ''
+  }${tags?.map((tag) => `&tags=${tag}`).join('')}`;
 
 export const conversationById = (id: string) => `${conversationsRoot}/${id}`;
 
@@ -76,7 +77,8 @@ export const loginFacebook = () => '/api/auth/facebook';
 
 export const loginGoogle = () => '/api/auth/google';
 
-export const refreshToken = (retry?: boolean) => `/api/auth/refresh${retry ? '?retry=true' : ''}`;
+export const refreshToken = (retry?: boolean) =>
+  `/api/auth/refresh${retry === true ? '?retry=true' : ''}`;
 
 export const requestPasswordReset = () => '/api/auth/requestPasswordReset';
 
@@ -93,19 +95,21 @@ export const config = () => '/api/config';
 export const prompts = () => '/api/prompts';
 
 export const assistants = ({
-  path,
+  path = '',
   options,
   version,
   endpoint,
+  isAvatar,
 }: {
   path?: string;
   options?: object;
   endpoint?: AssistantsEndpoint;
   version: number | string;
+  isAvatar?: boolean;
 }) => {
-  let url = `/api/assistants/v${version}`;
+  let url = isAvatar === true ? `${images()}/assistants` : `/api/assistants/v${version}`;
 
-  if (path) {
+  if (path && path !== '') {
     url += `/${path}`;
   }
 
@@ -114,6 +118,21 @@ export const assistants = ({
       ...(options ?? {}),
       endpoint,
     };
+  }
+
+  if (options && Object.keys(options).length > 0) {
+    const queryParams = new URLSearchParams(options as Record<string, string>).toString();
+    url += `?${queryParams}`;
+  }
+
+  return url;
+};
+
+export const agents = ({ path = '', options }: { path?: string; options?: object }) => {
+  let url = '/api/agents';
+
+  if (path && path !== '') {
+    url += `/${path}`;
   }
 
   if (options && Object.keys(options).length > 0) {
@@ -192,7 +211,8 @@ export const updatePromptPermissions = (roleName: string) =>
   `${roles()}/${roleName.toLowerCase()}/prompts`;
 
 /* Conversation Tags */
-export const conversationTags = (tag?: string) => `/api/tags${tag ? `/${tag}` : ''}`;
+export const conversationTags = (tag?: string) =>
+  `/api/tags${tag != null && tag ? `/${encodeURIComponent(tag)}` : ''}`;
 
 export const conversationTagsList = (pageNumber: string, sort?: string, order?: string) =>
   `${conversationTags()}/list?pageNumber=${pageNumber}${sort ? `&sort=${sort}` : ''}${
@@ -200,4 +220,8 @@ export const conversationTagsList = (pageNumber: string, sort?: string, order?: 
   }`;
 
 export const addTagToConversation = (conversationId: string) =>
-  `${conversationsRoot}/tags/${conversationId}`;
+  `${conversationTags()}/convo/${conversationId}`;
+
+export const userTerms = () => '/api/user/terms';
+export const acceptUserTerms = () => '/api/user/terms/accept';
+export const banner = () => '/api/banner';

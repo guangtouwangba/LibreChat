@@ -3,7 +3,7 @@ require('dotenv').config();
 const { webcrypto } = require('node:crypto');
 const key = Buffer.from(process.env.CREDS_KEY, 'hex');
 const iv = Buffer.from(process.env.CREDS_IV, 'hex');
-const algorithm = 'aes-256-cbc';
+const algorithm = 'AES-CBC';
 
 async function encrypt(value) {
   const cryptoKey = await webcrypto.subtle.importKey('raw', key, { name: algorithm }, false, [
@@ -102,4 +102,14 @@ async function hashToken(str) {
   return Buffer.from(hashBuffer).toString('hex');
 }
 
-module.exports = { encrypt, decrypt, encryptV2, decryptV2, hashToken };
+async function getRandomValues(length) {
+  if (!Number.isInteger(length) || length <= 0) {
+    throw new Error('Length must be a positive integer');
+  }
+
+  const randomValues = new Uint8Array(length);
+  webcrypto.getRandomValues(randomValues);
+  return Buffer.from(randomValues).toString('hex');
+}
+
+module.exports = { encrypt, decrypt, encryptV2, decryptV2, hashToken, getRandomValues };

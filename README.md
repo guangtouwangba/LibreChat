@@ -42,9 +42,11 @@
 
 - 🖥️ UI matching ChatGPT, including Dark mode, Streaming, and latest updates
 - 🤖 AI model selection:
-  - OpenAI, Azure OpenAI, BingAI, ChatGPT, Google Vertex AI, Anthropic (Claude), Plugins, Assistants API (including Azure Assistants)
+  - Anthropic (Claude), AWS Bedrock, OpenAI, Azure OpenAI, BingAI, ChatGPT, Google Vertex AI, Plugins, Assistants API (including Azure Assistants)
 - ✅ Compatible across both **[Remote & Local AI services](https://www.librechat.ai/docs/configuration/librechat_yaml/ai_endpoints):**
   - groq, Ollama, Cohere, Mistral AI, Apple MLX, koboldcpp, OpenRouter, together.ai, Perplexity, ShuttleAI, and more
+- 🪄 Generative UI with **[Code Artifacts](https://youtu.be/GfTj7O4gmd0?si=WJbdnemZpJzBrJo3)**
+   - Create React, HTML code, and Mermaid diagrams right in chat
 - 💾 Create, Save, & Share Custom Presets
 - 🔀 Switch between AI Endpoints and Presets, mid-chat
 - 🔄 Edit, Resubmit, and Continue Messages with Conversation branching
@@ -81,7 +83,7 @@ LibreChat brings together the future of assistant AIs with the revolutionary tec
 
 With LibreChat, you no longer need to opt for ChatGPT Plus and can instead use free or pay-per-call APIs. We welcome contributions, cloning, and forking to enhance the capabilities of this advanced chatbot platform.
 
-[![Watch the video](https://img.youtube.com/vi/bSVHEbVPNl4/maxresdefault.jpg)](https://www.youtube.com/watch?v=bSVHEbVPNl4)
+[![Watch the video](https://raw.githubusercontent.com/LibreChat-AI/librechat.ai/main/public/images/changelog/v0.7.5.png)](https://www.youtube.com/watch?v=IDukQ7a2f3U)
 Click on the thumbnail to open the video☝️
 
 ---
@@ -95,7 +97,7 @@ Click on the thumbnail to open the video☝️
 **Other:**
   - **Website:** [librechat.ai](https://librechat.ai)
   - **Documentation:** [docs.librechat.ai](https://docs.librechat.ai)
-  - **Blog:** [blog.librechat.ai](https://docs.librechat.ai)
+  - **Blog:** [blog.librechat.ai](https://blog.librechat.ai)
 
 ---
 

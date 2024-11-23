@@ -35,7 +35,7 @@ export default {
     'Aşağıdaki dosyalar yalnızca Kod Yorumlayıcı için kullanılabilir:',
   com_assistants_retrieval: 'Geri Getirme',
   com_assistants_search_name: 'Asistan adında ara',
-  com_assistants_tools: 'Araçlar',
+  com_ui_tools: 'Araçlar',
   com_assistants_actions: 'Eylemler',
   com_assistants_add_tools: 'Araçları Ekle',
   com_assistants_add_actions: 'Eylem Ekle',
@@ -264,6 +264,10 @@ export default {
   com_ui_bookmarks_update_error: 'Yer imi güncellenirken bir hata oluştu',
   com_ui_bookmarks_delete_error: 'Yer imi silinirken bir hata oluştu',
   com_ui_bookmarks_add_to_conversation: 'Mevcut sohbete ekle',
+  com_ui_accept: 'Kabul ediyorum',
+  com_ui_decline: 'Kabul etmiyorum',
+  com_ui_terms_and_conditions: 'Şartlar ve koşullar',
+  com_ui_no_terms_content: 'Şartlar ve koşullar için içerik bulunmuyor',
   com_auth_error_login:
     'Sağlanan bilgilerle giriş yapılamıyor. Lütfen kimlik bilgilerinizi kontrol edin ve tekrar deneyin.',
   com_auth_error_login_rl:
@@ -530,7 +534,7 @@ export default {
   com_nav_plugin_store: 'Eklenti mağazası',
   com_nav_plugin_install: 'Yükle',
   com_nav_plugin_uninstall: 'Kaldır',
-  com_nav_tool_add: 'Ekle',
+  com_ui_add: 'Ekle',
   com_nav_tool_remove: 'Kaldır',
   com_nav_tool_dialog: 'Asistan Araçları',
   com_nav_tool_dialog_description: 'Araç seçimlerinin kalıcı olması için asistan kaydedilmelidir.',
@@ -568,6 +572,7 @@ export default {
   com_nav_user_name_display: 'Mesajlarda kullanıcı adını görüntüle',
   com_nav_save_drafts: 'Taslakları yerel olarak kaydet',
   com_nav_show_code: 'Kod yorumlayıcı kullanırken her zaman kodu göster',
+  com_nav_font_size: 'Yazı Boyutu',
   com_nav_clear_all_chats: 'Tüm sohbetleri temizle',
   com_nav_confirm_clear: 'Temizlemeyi Onayla',
   com_nav_close_sidebar: 'Yan paneli kapat',
@@ -636,4 +641,5 @@ export default {
   com_nav_lang_dutch: 'Nederlands',
   com_nav_lang_indonesia: 'Indonesia',
   com_nav_lang_hebrew: 'עברית',
+  com_nav_lang_finnish: 'Suomi',
 };

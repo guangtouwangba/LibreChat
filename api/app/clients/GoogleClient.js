@@ -1,11 +1,11 @@
 const { google } = require('googleapis');
 const { Agent, ProxyAgent } = require('undici');
 const { ChatVertexAI } = require('@langchain/google-vertexai');
+const { GoogleVertexAI } = require('@langchain/google-vertexai');
+const { ChatGoogleVertexAI } = require('@langchain/google-vertexai');
 const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
 const { GoogleGenerativeAI: GenAI } = require('@google/generative-ai');
-const { GoogleVertexAI } = require('@langchain/community/llms/googlevertexai');
-const { ChatGoogleVertexAI } = require('langchain/chat_models/googlevertexai');
-const { AIMessage, HumanMessage, SystemMessage } = require('langchain/schema');
+const { AIMessage, HumanMessage, SystemMessage } = require('@langchain/core/messages');
 const { encoding_for_model: encodingForModel, get_encoding: getEncoding } = require('tiktoken');
 const {
   validateVisionModel,
@@ -28,13 +28,14 @@ const {
 } = require('./prompts');
 const BaseClient = require('./BaseClient');
 
-const loc = 'us-central1';
+const loc = process.env.GOOGLE_LOC || 'us-central1';
 const publisher = 'google';
 const endpointPrefix = `https://${loc}-aiplatform.googleapis.com`;
 // const apiEndpoint = loc + '-aiplatform.googleapis.com';
 const tokenizersCache = {};
 
 const settings = endpointSettings[EModelEndpoint.google];
+const EXCLUDED_GENAI_MODELS = /gemini-(?:1\.0|1-0|pro)/;
 
 class GoogleClient extends BaseClient {
   constructor(credentials, options = {}) {
@@ -120,19 +121,7 @@ class GoogleClient extends BaseClient {
       .filter((ex) => ex)
       .filter((obj) => obj.input.content !== '' && obj.output.content !== '');
 
-    const modelOptions = this.options.modelOptions || {};
-    this.modelOptions = {
-      ...modelOptions,
-      // set some good defaults (check for undefined in some cases because they may be 0)
-      model: modelOptions.model || settings.model.default,
-      temperature:
-        typeof modelOptions.temperature === 'undefined'
-          ? settings.temperature.default
-          : modelOptions.temperature,
-      topP: typeof modelOptions.topP === 'undefined' ? settings.topP.default : modelOptions.topP,
-      topK: typeof modelOptions.topK === 'undefined' ? settings.topK.default : modelOptions.topK,
-      // stop: modelOptions.stop // no stop method for now
-    };
+    this.modelOptions = this.options.modelOptions || {};
 
     this.options.attachments?.then((attachments) => this.checkVisionRequest(attachments));
 
@@ -378,7 +367,7 @@ class GoogleClient extends BaseClient {
       );
     }
 
-    if (!this.project_id && this.modelOptions.model.includes('1.5')) {
+    if (!this.project_id && !EXCLUDED_GENAI_MODELS.test(this.modelOptions.model)) {
       return await this.buildGenerativeMessages(messages);
     }
 
@@ -402,8 +391,13 @@ class GoogleClient extends BaseClient {
       parameters: this.modelOptions,
     };
 
-    if (this.options.promptPrefix) {
-      payload.instances[0].context = this.options.promptPrefix;
+    let promptPrefix = (this.options.promptPrefix ?? '').trim();
+    if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
+      promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+    }
+
+    if (promptPrefix) {
+      payload.instances[0].context = promptPrefix;
     }
 
     if (this.options.examples.length > 0) {
@@ -457,7 +451,10 @@ class GoogleClient extends BaseClient {
       identityPrefix = `${identityPrefix}\nYou are ${this.options.modelLabel}`;
     }
 
-    let promptPrefix = (this.options.promptPrefix || '').trim();
+    let promptPrefix = (this.options.promptPrefix ?? '').trim();
+    if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
+      promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+    }
     if (promptPrefix) {
       // If the prompt prefix doesn't end with the end token, add it.
       if (!promptPrefix.endsWith(`${this.endToken}`)) {
@@ -597,6 +594,8 @@ class GoogleClient extends BaseClient {
 
   createLLM(clientOptions) {
     const model = clientOptions.modelName ?? clientOptions.model;
+    clientOptions.location = loc;
+    clientOptions.endpoint = `${loc}-aiplatform.googleapis.com`;
     if (this.project_id && this.isTextModel) {
       logger.debug('Creating Google VertexAI client');
       return new GoogleVertexAI(clientOptions);
@@ -606,15 +605,12 @@ class GoogleClient extends BaseClient {
     } else if (this.project_id) {
       logger.debug('Creating VertexAI client');
       return new ChatVertexAI(clientOptions);
-    } else if (model.includes('1.5')) {
+    } else if (!EXCLUDED_GENAI_MODELS.test(model)) {
       logger.debug('Creating GenAI client');
-      return new GenAI(this.apiKey).getGenerativeModel(
-        {
-          ...clientOptions,
-          model,
-        },
-        { apiVersion: 'v1beta' },
-      );
+      return new GenAI(this.apiKey).getGenerativeModel({
+        ...clientOptions,
+        model,
+      });
     }
 
     logger.debug('Creating Chat Google Generative AI client');
@@ -676,17 +672,22 @@ class GoogleClient extends BaseClient {
     }
 
     const modelName = clientOptions.modelName ?? clientOptions.model ?? '';
-    if (modelName?.includes('1.5') && !this.project_id) {
+    if (!EXCLUDED_GENAI_MODELS.test(modelName) && !this.project_id) {
       const client = model;
       const requestOptions = {
         contents: _payload,
       };
 
+      let promptPrefix = (this.options.promptPrefix ?? '').trim();
+      if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
+        promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+      }
+
       if (this.options?.promptPrefix?.length) {
         requestOptions.systemInstruction = {
           parts: [
             {
-              text: this.options.promptPrefix,
+              text: promptPrefix,
             },
           ],
         };
@@ -694,7 +695,7 @@ class GoogleClient extends BaseClient {
 
       requestOptions.safetySettings = _payload.safetySettings;
 
-      const delay = modelName.includes('flash') ? 8 : 14;
+      const delay = modelName.includes('flash') ? 8 : 15;
       const result = await client.generateContentStream(requestOptions);
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
@@ -709,7 +710,6 @@ class GoogleClient extends BaseClient {
 
     const stream = await model.stream(messages, {
       signal: abortController.signal,
-      timeout: 7000,
       safetySettings: _payload.safetySettings,
     });
 
@@ -717,7 +717,7 @@ class GoogleClient extends BaseClient {
 
     if (!this.options.streamRate) {
       if (this.isGenerativeModel) {
-        delay = 12;
+        delay = 15;
       }
       if (modelName.includes('flash')) {
         delay = 5;
@@ -771,19 +771,24 @@ class GoogleClient extends BaseClient {
     const messages = this.isTextModel ? _payload.trim() : _messages;
 
     const modelName = clientOptions.modelName ?? clientOptions.model ?? '';
-    if (modelName?.includes('1.5') && !this.project_id) {
-      logger.debug('Identified titling model as 1.5 version');
+    if (!EXCLUDED_GENAI_MODELS.test(modelName) && !this.project_id) {
+      logger.debug('Identified titling model as GenAI version');
       /** @type {GenerativeModel} */
       const client = model;
       const requestOptions = {
         contents: _payload,
       };
 
+      let promptPrefix = (this.options.promptPrefix ?? '').trim();
+      if (typeof this.options.artifactsPrompt === 'string' && this.options.artifactsPrompt) {
+        promptPrefix = `${promptPrefix ?? ''}\n${this.options.artifactsPrompt}`.trim();
+      }
+
       if (this.options?.promptPrefix?.length) {
         requestOptions.systemInstruction = {
           parts: [
             {
-              text: this.options.promptPrefix,
+              text: promptPrefix,
             },
           ],
         };
@@ -808,7 +813,7 @@ class GoogleClient extends BaseClient {
       });
 
       reply = titleResponse.content;
-
+      // TODO: RECORD TOKEN USAGE
       return reply;
     }
   }
@@ -854,6 +859,7 @@ class GoogleClient extends BaseClient {
 
   getSaveOptions() {
     return {
+      artifacts: this.options.artifacts,
       promptPrefix: this.options.promptPrefix,
       modelLabel: this.options.modelLabel,
       iconURL: this.options.iconURL,

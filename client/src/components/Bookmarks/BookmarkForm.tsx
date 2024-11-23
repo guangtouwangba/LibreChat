@@ -1,39 +1,38 @@
 import React, { useEffect } from 'react';
+import { QueryKeys } from 'librechat-data-provider';
 import { Controller, useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
-  TConversationTag,
   TConversation,
+  TConversationTag,
   TConversationTagRequest,
 } from 'librechat-data-provider';
-import { cn, removeFocusOutlines, defaultTextProps } from '~/utils/';
+import { Checkbox, Label, TextareaAutosize, Input } from '~/components';
 import { useBookmarkContext } from '~/Providers/BookmarkContext';
 import { useConversationTagMutation } from '~/data-provider';
-import { Checkbox, Label, TextareaAutosize } from '~/components/ui/';
-import { NotificationSeverity } from '~/common';
 import { useToastContext } from '~/Providers';
 import { useLocalize } from '~/hooks';
+import { cn, logger } from '~/utils';
 
 type TBookmarkFormProps = {
+  tags?: string[];
   bookmark?: TConversationTag;
   conversation?: TConversation;
-  onOpenChange: React.Dispatch<React.SetStateAction<boolean>>;
   formRef: React.RefObject<HTMLFormElement>;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  tags?: string[];
-  setTags?: (tags: string[]) => void;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  mutation: ReturnType<typeof useConversationTagMutation>;
 };
 const BookmarkForm = ({
-  bookmark,
-  conversation,
-  onOpenChange,
-  formRef,
-  setIsLoading,
   tags,
-  setTags,
+  bookmark,
+  mutation,
+  conversation,
+  setOpen,
+  formRef,
 }: TBookmarkFormProps) => {
-  const { showToast } = useToastContext();
   const localize = useLocalize();
-  const mutation = useConversationTagMutation(bookmark?.tag);
+  const queryClient = useQueryClient();
+  const { showToast } = useToastContext();
   const { bookmarks } = useBookmarkContext();
 
   const {
@@ -45,55 +44,47 @@ const BookmarkForm = ({
     formState: { errors },
   } = useForm<TConversationTagRequest>({
     defaultValues: {
-      tag: bookmark?.tag || '',
-      description: bookmark?.description || '',
-      conversationId: conversation?.conversationId || '',
+      tag: bookmark?.tag ?? '',
+      description: bookmark?.description ?? '',
+      conversationId: conversation?.conversationId ?? '',
       addToConversation: conversation ? true : false,
     },
   });
 
   useEffect(() => {
-    if (bookmark) {
-      setValue('tag', bookmark.tag || '');
-      setValue('description', bookmark.description || '');
+    if (bookmark && bookmark.tag) {
+      setValue('tag', bookmark.tag);
+      setValue('description', bookmark.description ?? '');
     }
   }, [bookmark, setValue]);
 
   const onSubmit = (data: TConversationTagRequest) => {
+    logger.log('tag_mutation', 'BookmarkForm - onSubmit: data', data);
     if (mutation.isLoading) {
       return;
     }
     if (data.tag === bookmark?.tag && data.description === bookmark?.description) {
       return;
     }
+    if (data.tag != null && (tags ?? []).includes(data.tag)) {
+      showToast({
+        message: localize('com_ui_bookmarks_create_exists'),
+        status: 'warning',
+      });
+      return;
+    }
+    const allTags =
+      queryClient.getQueryData<TConversationTag[]>([QueryKeys.conversationTags]) ?? [];
+    if (allTags.some((tag) => tag.tag === data.tag)) {
+      showToast({
+        message: localize('com_ui_bookmarks_create_exists'),
+        status: 'warning',
+      });
+      return;
+    }
 
-    setIsLoading(true);
-    mutation.mutate(data, {
-      onSuccess: () => {
-        showToast({
-          message: bookmark
-            ? localize('com_ui_bookmarks_update_success')
-            : localize('com_ui_bookmarks_create_success'),
-        });
-        setIsLoading(false);
-        onOpenChange(false);
-        if (setTags && data.addToConversation) {
-          const newTags = [...(tags || []), data.tag].filter(
-            (tag) => tag !== undefined,
-          ) as string[];
-          setTags(newTags);
-        }
-      },
-      onError: () => {
-        showToast({
-          message: bookmark
-            ? localize('com_ui_bookmarks_update_error')
-            : localize('com_ui_bookmarks_create_error'),
-          severity: NotificationSeverity.ERROR,
-        });
-        setIsLoading(false);
-      },
-    });
+    mutation.mutate(data);
+    setOpen(false);
   };
 
   return (
@@ -109,7 +100,7 @@ const BookmarkForm = ({
           <Label htmlFor="bookmark-tag" className="text-left text-sm font-medium">
             {localize('com_ui_bookmarks_title')}
           </Label>
-          <input
+          <Input
             type="text"
             id="bookmark-tag"
             aria-label="Bookmark"
@@ -128,17 +119,12 @@ const BookmarkForm = ({
               },
             })}
             aria-invalid={!!errors.tag}
-            className={cn(
-              defaultTextProps,
-              'flex h-10 max-h-10 w-full resize-none px-3 py-2',
-              removeFocusOutlines,
-            )}
-            placeholder=" "
+            placeholder="Bookmark"
           />
           {errors.tag && <span className="text-sm text-red-500">{errors.tag.message}</span>}
         </div>
 
-        <div className="grid w-full items-center gap-2">
+        <div className="mt-4 grid w-full items-center gap-2">
           <Label htmlFor="bookmark-description" className="text-left text-sm font-medium">
             {localize('com_ui_bookmarks_description')}
           </Label>
@@ -152,8 +138,7 @@ const BookmarkForm = ({
             id="bookmark-description"
             disabled={false}
             className={cn(
-              defaultTextProps,
-              'flex max-h-[138px] min-h-[100px] w-full resize-none px-3 py-2',
+              'flex h-10 max-h-[250px] min-h-[100px] w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none',
             )}
           />
         </div>
@@ -168,15 +153,16 @@ const BookmarkForm = ({
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   className="relative float-left mr-2 inline-flex h-4 w-4 cursor-pointer"
-                  value={field?.value?.toString()}
+                  value={field.value?.toString()}
                 />
               )}
             />
-            <label
-              className="form-check-label text-token-text-primary w-full cursor-pointer"
-              htmlFor="addToConversation"
+            <button
+              type="button"
+              aria-label={localize('com_ui_bookmarks_add_to_conversation')}
+              className="form-check-label w-full cursor-pointer text-text-primary"
               onClick={() =>
-                setValue('addToConversation', !getValues('addToConversation'), {
+                setValue('addToConversation', !(getValues('addToConversation') ?? false), {
                   shouldDirty: true,
                 })
               }
@@ -184,7 +170,7 @@ const BookmarkForm = ({
               <div className="flex select-none items-center">
                 {localize('com_ui_bookmarks_add_to_conversation')}
               </div>
-            </label>
+            </button>
           </div>
         )}
       </div>

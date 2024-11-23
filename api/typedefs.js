@@ -9,6 +9,60 @@
  */
 
 /**
+ * @exports ServerRequest
+ * @typedef {import('express').Request} ServerRequest
+ * @memberof typedefs
+ */
+
+/**
+ * @exports ServerResponse
+ * @typedef {import('express').Response} ServerResponse
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AgentRun
+ * @typedef {import('@librechat/agents').Run} AgentRun
+ * @memberof typedefs
+ */
+
+/**
+ * @exports IState
+ * @typedef {import('@librechat/agents').IState} IState
+ * @memberof typedefs
+ */
+
+/**
+ * @exports ClientCallbacks
+ * @typedef {import('@librechat/agents').ClientCallbacks} ClientCallbacks
+ * @memberof typedefs
+ */
+
+/**
+ * @exports BedrockClientOptions
+ * @typedef {import('@librechat/agents').BedrockConverseClientOptions} BedrockClientOptions
+ * @memberof typedefs
+ */
+
+/**
+ * @exports StreamEventData
+ * @typedef {import('@librechat/agents').StreamEventData} StreamEventData
+ * @memberof typedefs
+ */
+
+/**
+ * @exports ToolEndData
+ * @typedef {import('@librechat/agents').ToolEndData} ToolEndData
+ * @memberof typedefs
+ */
+
+/**
+ * @exports UsageMetadata
+ * @typedef {import('@langchain/core/messages').UsageMetadata} UsageMetadata
+ * @memberof typedefs
+ */
+
+/**
  * @exports Ollama
  * @typedef {import('ollama').Ollama} Ollama
  * @memberof typedefs
@@ -23,6 +77,24 @@
 /**
  * @exports Anthropic
  * @typedef {import('@anthropic-ai/sdk').default} Anthropic
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AnthropicMessage
+ * @typedef {import('@anthropic-ai/sdk').default.MessageParam} AnthropicMessage
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AnthropicMessageStartEvent
+ * @typedef {import('@anthropic-ai/sdk').default.MessageStartEvent} AnthropicMessageStartEvent
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AnthropicMessageDeltaEvent
+ * @typedef {import('@anthropic-ai/sdk').default.MessageDeltaEvent} AnthropicMessageDeltaEvent
  * @memberof typedefs
  */
 
@@ -574,8 +646,21 @@
  * @property {string} [temp_file_id] - The temporary identifier of the file.
  * @property {string} endpoint - The conversation endpoint origin for the file upload.
  * @property {string} [assistant_id] - The assistant ID if file upload is in the `knowledge` context.
+ * @property {string} [tool_resource] - The relevant tool resource for the file upload.
  * @memberof typedefs
  */
+
+/**
+ * @exports FileObject
+ * @typedef {{file_id: string, filepath: string, source: string, bytes?: number, width?: number, height?: number}} FileObject
+ * @memberof typedefs
+ *
+
+/**
+ * @exports ArtifactPromises
+ * @typedef {Promise<MongoFile | { filename: string; filepath: string; expires: number;} | null>[]} ArtifactPromises
+ * @memberof typedefs
+ *
 
 /**
  * @typedef {Object} ImageOnlyMetadata
@@ -631,6 +716,12 @@
 /**
  * @exports processFileURL
  * @typedef {import('~/server/services/Files/process').processFileURL} processFileURL
+ * @memberof typedefs
+ */
+
+/**
+ * @exports TAttachment
+ * @typedef {import('librechat-data-provider').TAttachment} TAttachment
  * @memberof typedefs
  */
 
@@ -703,6 +794,36 @@
 /**
  * @exports TAssistantEndpoint
  * @typedef {import('librechat-data-provider').TAssistantEndpoint} TAssistantEndpoint
+ * @memberof typedefs
+ */
+
+/**
+ * @exports Agent
+ * @typedef {import('librechat-data-provider').Agent} Agent
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AgentCreateParams
+ * @typedef {import('librechat-data-provider').AgentCreateParams} AgentCreateParams
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AgentUpdateParams
+ * @typedef {import('librechat-data-provider').AgentUpdateParams} AgentUpdateParams
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AgentListParams
+ * @typedef {import('librechat-data-provider').AgentListParams} AgentListParams
+ * @memberof typedefs
+ */
+
+/**
+ * @exports AgentListResponse
+ * @typedef {import('librechat-data-provider').AgentListResponse} AgentListResponse
  * @memberof typedefs
  */
 
@@ -812,6 +933,34 @@
 /**
  * @exports OpenAISpecClient
  * @typedef {import('./app/clients/OpenAIClient')} OpenAISpecClient
+ * @memberof typedefs
+ */
+
+/**
+ * @exports TAgentClient
+ * @typedef {import('./server/controllers/agents/client')} TAgentClient
+ * @memberof typedefs
+ */
+
+/**
+ * @typedef {Object} AgentClientOptions
+ * @property {Agent} agent - The agent configuration object
+ * @property {string} endpoint - The endpoint identifier for the agent
+ * @property {Object} req - The request object
+ * @property {string} [name] - The username
+ * @property {string} [modelLabel] - The label for the model being used
+ * @property {number} [maxContextTokens] - Maximum number of tokens allowed in context
+ * @property {Object} [endpointTokenConfig] - Token configuration for the endpoint
+ * @property {boolean} [resendFiles] - Whether to resend files
+ * @property {string} [imageDetail] - Detail level for image processing
+ * @property {Object} [spec] - Specification object
+ * @property {Promise<MongoFile[]>} [attachments] - Promise resolving to file attachments
+ * @property {Object} [headers] - Additional headers for requests
+ * @property {string} [proxy] - Proxy configuration
+ * @property {Object} [tools] - Available tools for the agent
+ * @property {Object} [eventHandlers] - Custom event handlers
+ * @property {Object} [addParams] - Additional parameters to add to requests
+ * @property {string[]} [dropParams] - Parameters to remove from requests
  * @memberof typedefs
  */
 
@@ -1309,6 +1458,45 @@
  * @method onRunStepCompleted Handles the completion of a run step.
  * @method handleMessageEvent Handles events related to messages within the run.
  * @method messageCompleted Handles the completion of a message processing.
+ */
+
+/* TX Types */
+
+/**
+ * @typedef {object} txData - Transaction data.
+ * @property {mongoose.Schema.Types.ObjectId} user - The user ID.
+ * @property {String} conversationId - The ID of the conversation.
+ * @property {String} model - The model name.
+ * @property {String} context - The context in which the transaction is made.
+ * @property {EndpointTokenConfig} [endpointTokenConfig] - The current endpoint token config.
+ * @property {object} [cacheUsage] - Cache usage, if any.
+ * @property {String} [valueKey] - The value key (optional).
+ * @memberof typedefs
+ */
+
+/**
+ * https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching#pricing
+ * @typedef {object} AnthropicStreamUsage - Stream usage for Anthropic
+ * @property {number} [input_tokens] - The number of input tokens used.
+ * @property {number} [cache_creation_input_tokens] - The number of cache creation input tokens used (write).
+ * @property {number} [cache_read_input_tokens] - The number of cache input tokens used (read).
+ * @property {number} [output_tokens] - The number of output tokens used.
+ */
+
+/**
+ * @exports OpenAIUsageMetadata
+ * @typedef {Object} OpenAIUsageMetadata -  Usage statistics related to the run. This value will be `null` if the run is not in a terminal state (i.e. `in_progress`, `queued`, etc.).
+ * @property {number} [usage.completion_tokens] - Number of completion tokens used over the course of the run.
+ * @property {number} [usage.prompt_tokens] - Number of prompt tokens used over the course of the run.
+ * @property {number} [usage.total_tokens] - Total number of tokens used (prompt + completion).
+ * @property {number} [usage.reasoning_tokens] - Total number of tokens used for reasoning (OpenAI o1 models).
+ * @property {Object} [usage.completion_tokens_details] - Further details on the completion tokens used (OpenAI o1 models).
+ * @property {number} [usage.completion_tokens_details.reasoning_tokens] - Total number of tokens used for reasoning (OpenAI o1 models).
+ * @memberof typedefs
+ */
+
+/**
+ * @typedef {AnthropicStreamUsage | OpenAIUsageMetadata | UsageMetadata} StreamUsage - Stream usage for all providers (currently only Anthropic, OpenAI, LangChain)
  */
 
 /* Native app/client methods */
